@@ -1,0 +1,45 @@
+name: Generate Profile SVGs
+
+on:
+  schedule:
+    - cron: "0 0 * * *"   # once a day at midnight UTC
+  workflow_dispatch:        # allows manual "Run workflow" trigger
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Generate SVGs
+        env:
+          # GraphQL commit history + cloning repos needs a PAT, not the
+          # default GITHUB_TOKEN. Create one at:
+          # github.com/settings/tokens -> classic token -> scope: "repo", "read:user"
+          # then add it as a repo secret named GH_PAT.
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+          GH_USERNAME: ${{ github.repository_owner }}
+          SKIP_LOC: "false"   # set to "true" if LOC scanning is too slow
+        run: python generate_svg.py
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add dark_mode.svg light_mode.svg
+          git diff --quiet && git diff --staged --quiet || git commit -m "Update profile SVGs"
+          git push
