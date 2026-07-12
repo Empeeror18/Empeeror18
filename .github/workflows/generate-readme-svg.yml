@@ -1,8 +1,6 @@
 name: Generate Profile SVGs
 
 on:
-  schedule:
-    - cron: "0 0 * * *"   # once a day at midnight UTC
   workflow_dispatch:        # allows manual "Run workflow" trigger
   push:
     branches: [main]
