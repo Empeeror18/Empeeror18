@@ -1,8 +1,6 @@
 name: Generate Profile SVGs
 
 on:
-  schedule:
-    - cron: "0 0 * * *"   # once a day at midnight UTC
   workflow_dispatch:        # allows manual "Run workflow" trigger
   push:
     branches: [main]
@@ -10,6 +8,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: write
     steps:
@@ -26,8 +25,13 @@ jobs:
 
       - name: Generate SVGs
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # GraphQL commit history + cloning repos needs a PAT, not the
+          # default GITHUB_TOKEN. Create one at:
+          # github.com/settings/tokens -> classic token -> scope: "repo", "read:user"
+          # then add it as a repo secret named GH_PAT.
+          GH_TOKEN: ${{ secrets.GH_PAT }}
           GH_USERNAME: ${{ github.repository_owner }}
+          SKIP_LOC: "false"   # set to "true" if LOC scanning is too slow
         run: python generate_svg.py
 
       - name: Commit and push if changed
